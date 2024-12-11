@@ -1,28 +1,46 @@
 pipeline {
     agent any 
 
+    environment {
+        DOCKER_USERNAME = credentials('docker-username') // Use Jenkins credentials plugin
+        DOCKER_PASSWORD = credentials('docker-password') // Use Jenkins credentials plugin
+    }
+
     stages {
         stage('Build') {
             steps {
                 script {
                     // Build your Docker image
+                    echo 'Building Docker image...'
                     bat 'docker build -t my-nodejs-app .'
                 }
             }
         }
+
         stage('Test') {
             steps {
                 script {
-                    // Run tests here if you have any
+                    // Run tests in the Docker container (if applicable)
                     echo 'Running tests...'
+                    bat 'docker run --rm my-nodejs-app npm test'
                 }
             }
         }
+
         stage('Deploy') {
             steps {
                 script {
-                    // Deploy your Docker image
                     echo 'Deploying application...'
+
+                    // Log in to Docker Hub using Jenkins credentials
+                    bat 'docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD'
+                    
+                    // Tag and push the image to Docker Hub
+                    bat 'docker tag my-nodejs-app $DOCKER_USERNAME/my-nodejs-app:latest'
+                    bat 'docker push $DOCKER_USERNAME/my-nodejs-app:latest'
+
+                    // Optional: If deploying to a server, you can SSH to the server and run the container
+                    // bat 'ssh user@yourserver "docker pull $DOCKER_USERNAME/my-nodejs-app:latest && docker run -d $DOCKER_USERNAME/my-nodejs-app:latest"'
                 }
             }
         }
